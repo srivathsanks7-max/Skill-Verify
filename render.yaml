@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: skillverify-app
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build
+    startCommand: gunicorn --chdir backend --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: CREDENTIAL_SIGNING_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JUDGE0_URL
+        value: https://ce.judge0.com
+      - key: JUDGE0_RAPIDAPI_KEY
+        sync: false
+      - key: JUDGE0_RAPIDAPI_HOST
+        sync: false
