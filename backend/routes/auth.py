@@ -12,18 +12,20 @@ GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
 
 
 def _app_origin():
-    # Use the actual host the user is visiting. This avoids stale Vercel
-    # preview/production URLs causing GitHub redirect_uri mismatches.
+    # On Vercel, VERCEL_URL is a deployment/preview URL.
+    # VERCEL_PROJECT_PRODUCTION_URL is the stable production domain and is
+    # available at runtime even for preview deployments.
+    production_domain = os.environ.get("VERCEL_PROJECT_PRODUCTION_URL")
+    if production_domain:
+        return f"https://{production_domain}"
+
     forwarded_proto = request.headers.get("X-Forwarded-Proto", request.scheme).split(",")[0].strip()
     return f"{forwarded_proto}://{request.host}"
 
-
 def _github_callback_url():
-    # An explicit env var can still override this, but the live request host
-    # is the safest default for Vercel preview and production deployments.
-    configured = os.environ.get("GITHUB_CALLBACK_URL")
-    return configured.rstrip("/") if configured else f"{_app_origin()}/auth/github/callback"
-
+    # Always use the stable Vercel production domain when deployed.
+    # This prevents preview deployment URLs from being sent to GitHub OAuth.
+    return f"{_app_origin()}/auth/github/callback"
 
 
 @auth_bp.get("/auth/github/login")
