@@ -53,3 +53,7 @@ Open `colab/skillverify_model_training.ipynb`. It trains a lightweight skill-lev
 - Candidate source code is executed by Judge0 with CPU/memory limits.
 - The current demo stores active assessments in process memory. For a multi-instance production deployment, move sessions/results/credentials to Postgres + Redis.
 - Do not commit the original `.env`, `node_modules`, or Python virtual environment from the supplied ZIP.
+
+
+## Vercel
+This package uses Vercel's zero-configuration Flask deployment with the root `app.py` entrypoint. Set the environment variables in VERCEL_DEPLOY.md.
