@@ -9,17 +9,21 @@ auth_bp = Blueprint("auth", __name__)
 
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
-FRONTEND_URL = (
-    os.environ.get("FRONTEND_URL")
-    or os.environ.get("VERCEL_PROJECT_PRODUCTION_URL")
-    or (f"https://{os.environ['VERCEL_URL']}" if os.environ.get("VERCEL_URL") else None)
-    or os.environ.get("RENDER_EXTERNAL_URL")
-    or "http://localhost:5173"
-)
-GITHUB_CALLBACK_URL = (
-    os.environ.get("GITHUB_CALLBACK_URL")
-    or f"{FRONTEND_URL.rstrip('/')}/auth/github/callback"
-)
+
+
+def _app_origin():
+    # Use the actual host the user is visiting. This avoids stale Vercel
+    # preview/production URLs causing GitHub redirect_uri mismatches.
+    forwarded_proto = request.headers.get("X-Forwarded-Proto", request.scheme).split(",")[0].strip()
+    return f"{forwarded_proto}://{request.host}"
+
+
+def _github_callback_url():
+    # An explicit env var can still override this, but the live request host
+    # is the safest default for Vercel preview and production deployments.
+    configured = os.environ.get("GITHUB_CALLBACK_URL")
+    return configured.rstrip("/") if configured else f"{_app_origin()}/auth/github/callback"
+
 
 
 @auth_bp.get("/auth/github/login")
@@ -31,7 +35,7 @@ def github_login():
     session["oauth_state"] = state
     params = {
         "client_id": GITHUB_CLIENT_ID,
-        "redirect_uri": GITHUB_CALLBACK_URL,
+        "redirect_uri": _github_callback_url(),
         "scope": "read:user,repo",
         "state": state,
     }
@@ -54,6 +58,7 @@ def github_callback():
             "client_id": GITHUB_CLIENT_ID,
             "client_secret": GITHUB_CLIENT_SECRET,
             "code": code,
+            "redirect_uri": _github_callback_url(),
         },
         timeout=15,
     )
@@ -77,7 +82,7 @@ def github_callback():
     session["github_avatar"] = user.get("avatar_url")
     session["github_name"] = user.get("name") or user.get("login")
 
-    return redirect(f"{FRONTEND_URL.rstrip('/')}/dashboard")
+    return redirect(f"{_app_origin()}/dashboard")
 
 
 @auth_bp.get("/auth/me")
